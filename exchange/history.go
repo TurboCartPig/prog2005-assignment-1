@@ -14,7 +14,7 @@ import (
 // TODO: Validate request parameters
 
 // Gets countries mathing given name
-func getCountries(name string) Countries {
+func getCountries(name string) (Countries, int) {
 	var countries Countries
 
 	// Set fullText to only return full matches, not partial ones
@@ -26,11 +26,11 @@ func getCountries(name string) Countries {
 	json.NewDecoder(res.Body).Decode(&countries)
 	res.Body.Close()
 
-	return countries
+	return countries, res.StatusCode
 }
 
 // Gets exchangerates history for given currencies in the given timeperiod
-func getExchangeRates(currencies []Currency, startDate, endDate string) Rates {
+func getExchangeRates(currencies []Currency, startDate, endDate string) (Rates, int) {
 	var rates Rates
 
 	// Construct URL
@@ -48,13 +48,12 @@ func getExchangeRates(currencies []Currency, startDate, endDate string) Rates {
 	// Get the rates
 	res, err := http.Get(url.String())
 	if err != nil {
-		log.Fatalf("Get exchange rates failed with: %s", err.Error())
+		log.Fatal(err)
 	}
-
 	json.NewDecoder(res.Body).Decode(&rates)
 	res.Body.Close()
 
-	return rates
+	return rates, res.StatusCode
 }
 
 func HistoryHandler(rw http.ResponseWriter, r *http.Request) {
@@ -70,14 +69,22 @@ func HistoryHandler(rw http.ResponseWriter, r *http.Request) {
 	endDate := fmt.Sprintf("%s-%s-%s", end_yyyy, end_mm, end_dd)
 
 	// Get country information from restcountries.eu
-	countries := getCountries(country)
+	countries, status := getCountries(country)
+	if status != http.StatusOK {
+		http.Error(rw, http.StatusText(status), status)
+		return
+	}
 
 	if len(countries) > 1 {
 		log.Println("Given parameter matched more the one country. Make sure the country name is spelled correctly.")
 	}
 
 	// Get currency
-	rates := getExchangeRates(countries[0].Currencies, startDate, endDate)
+	rates, status := getExchangeRates(countries[0].Currencies, startDate, endDate)
+	if status != http.StatusOK {
+		http.Error(rw, http.StatusText(status), status)
+		return
+	}
 
 	// Write json encoded rates to response body
 	json.NewEncoder(rw).Encode(rates)
