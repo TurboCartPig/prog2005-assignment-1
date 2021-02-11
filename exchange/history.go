@@ -58,15 +58,15 @@ func getExchangeRates(currencies []Currency, startDate, endDate string) (Rates, 
 
 func HistoryHandler(rw http.ResponseWriter, r *http.Request) {
 	country := chi.URLParam(r, "country")
-	start_yyyy := chi.URLParam(r, "start_yyyy")
-	start_mm := chi.URLParam(r, "start_mm")
-	start_dd := chi.URLParam(r, "start_dd")
-	end_yyyy := chi.URLParam(r, "end_yyyy")
-	end_mm := chi.URLParam(r, "end_mm")
-	end_dd := chi.URLParam(r, "end_dd")
+	startYear := chi.URLParam(r, "start_yyyy")
+	startMonth := chi.URLParam(r, "start_mm")
+	startDay := chi.URLParam(r, "start_dd")
+	endYear := chi.URLParam(r, "end_yyyy")
+	endMonth := chi.URLParam(r, "end_mm")
+	endDay := chi.URLParam(r, "end_dd")
 
-	startDate := fmt.Sprintf("%s-%s-%s", start_yyyy, start_mm, start_dd)
-	endDate := fmt.Sprintf("%s-%s-%s", end_yyyy, end_mm, end_dd)
+	startDate := fmt.Sprintf("%s-%s-%s", startYear, startMonth, startDay)
+	endDate := fmt.Sprintf("%s-%s-%s", endYear, endMonth, endDay)
 
 	// Get country information from restcountries.eu
 	countries, status := getCountries(country)
