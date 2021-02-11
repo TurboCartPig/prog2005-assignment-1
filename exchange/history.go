@@ -79,6 +79,6 @@ func HistoryHandler(rw http.ResponseWriter, r *http.Request) {
 	// Get currency
 	rates := getExchangeRates(countries[0].Currencies, startDate, endDate)
 
-	rw.Header().Add("Content-Type", "application/json")
+	// Write json encoded rates to response body
 	json.NewEncoder(rw).Encode(rates)
 }

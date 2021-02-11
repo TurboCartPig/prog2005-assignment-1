@@ -35,14 +35,35 @@ func port() int {
 	return 3000
 }
 
+// Middleware for setting content-type to json
+func returnJSON(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		rw.Header().Add("Content-Type", "application/json")
+		next.ServeHTTP(rw, r)
+	})
+}
+
 // Setup all the top level routes the server serves on
 func setupRoutes() *chi.Mux {
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
 
-	r.Get("/exchange/v1/exchangehistory/{country:[a-z]+}/{start_yyyy}-{start_mm}-{start_dd}-{end_yyyy}-{end_mm}-{end_dd}", exchange.HistoryHandler)
-	r.Get("/exchange/v1/exchangeborder/{country:[a-z]+}", exchange.BorderHandler)
-	r.Get("/exchange/v1/diag", diag.NewHandler(StartTime, Version))
+	// Use Middleware
+	r.Use(middleware.Logger)
+	r.Use(returnJSON)
+
+	// Define endpoints
+	r.Get(
+		"/exchange/v1/exchangehistory/{country:[a-z]+}/{start_yyyy}-{start_mm}-{start_dd}-{end_yyyy}-{end_mm}-{end_dd}",
+		exchange.HistoryHandler,
+	)
+	r.Get(
+		"/exchange/v1/exchangeborder/{country:[a-z]+}",
+		exchange.BorderHandler,
+	)
+	r.Get(
+		"/exchange/v1/diag",
+		diag.NewHandler(StartTime, Version),
+	)
 
 	return r
 }
