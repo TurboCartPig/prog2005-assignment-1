@@ -2,61 +2,17 @@ package exchange
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
+	"time"
 
 	"github.com/go-chi/chi"
 )
 
-// TODO: Handle errors
-// TODO: Validate request parameters
-
-// Gets countries mathing given name
-func getCountries(name string) (Countries, int) {
-	var countries Countries
-
-	// Set fullText to only return full matches, not partial ones
-	res, err := http.Get(RestCountriesRoot + "/name/norway?fullText=true")
-	if err != nil {
-		log.Fatalf("Get country failed with: %s", err.Error())
-	}
-
-	json.NewDecoder(res.Body).Decode(&countries)
-	res.Body.Close()
-
-	return countries, res.StatusCode
-}
-
-// Gets exchangerates history for given currencies in the given timeperiod
-func getExchangeRates(currencies []Currency, startDate, endDate string) (Rates, int) {
-	var rates Rates
-
-	// Construct URL
-	url, _ := url.Parse(ExchangeRatesAPIRoot)
-	queries := url.Query()
-	queries.Set("base", "EUR")
-	queries.Set("start_at", startDate)
-	queries.Set("end_at", endDate)
-	for _, currency := range currencies {
-		queries.Add("symbols", currency.Code)
-	}
-	url.RawQuery = queries.Encode()
-	url.Path += "/history"
-
-	// Get the rates
-	res, err := http.Get(url.String())
-	if err != nil {
-		log.Fatal(err)
-	}
-	json.NewDecoder(res.Body).Decode(&rates)
-	res.Body.Close()
-
-	return rates, res.StatusCode
-}
-
-func HistoryHandler(rw http.ResponseWriter, r *http.Request) {
+// Parse parameters from request into country, start date and end date.
+func parseParameters(r *http.Request) (string, string, string, error) {
 	country := chi.URLParam(r, "country")
 	startYear := chi.URLParam(r, "start_yyyy")
 	startMonth := chi.URLParam(r, "start_mm")
@@ -65,11 +21,30 @@ func HistoryHandler(rw http.ResponseWriter, r *http.Request) {
 	endMonth := chi.URLParam(r, "end_mm")
 	endDay := chi.URLParam(r, "end_dd")
 
-	startDate := fmt.Sprintf("%s-%s-%s", startYear, startMonth, startDay)
-	endDate := fmt.Sprintf("%s-%s-%s", endYear, endMonth, endDay)
+	// Format parameters as expected by APIs
+	startDateStr := fmt.Sprintf("%s-%s-%s", startYear, startMonth, startDay)
+	endDateStr := fmt.Sprintf("%s-%s-%s", endYear, endMonth, endDay)
+
+	// Make sure the parameters make sense
+	startDate, startErr := time.Parse(time.RFC3339, startDateStr+"T00:00:00Z")
+	endDate, endErr := time.Parse(time.RFC3339, endDateStr+"T00:00:00Z")
+	if endDate.Before(startDate) || startErr != nil || endErr != nil {
+		log.Printf("Bad parameter format")
+		return "", "", "", errors.New("Bad Format")
+	}
+
+	return country, startDateStr, endDateStr, nil
+}
+
+func HistoryHandler(rw http.ResponseWriter, r *http.Request) {
+	country, startDate, endDate, err := parseParameters(r)
+	if err != nil {
+		http.Error(rw, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
 
 	// Get country information from restcountries.eu
-	countries, status := getCountries(country)
+	countries, status := GetCountries(country)
 	if status != http.StatusOK {
 		http.Error(rw, http.StatusText(status), status)
 		return
@@ -80,7 +55,7 @@ func HistoryHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get currency
-	rates, status := getExchangeRates(countries[0].Currencies, startDate, endDate)
+	rates, status := GetExchangeRates("EUR", countries[0].Currencies, startDate, endDate)
 	if status != http.StatusOK {
 		http.Error(rw, http.StatusText(status), status)
 		return

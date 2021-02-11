@@ -1,5 +1,12 @@
 package exchange
 
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+	"net/url"
+)
+
 const (
 	// Root URL for the restcountries.eu api
 	RestCountriesRoot = "https://restcountries.eu/rest/v2"
@@ -66,4 +73,48 @@ type Rates struct {
 	EndAt string `json:"end_at"`
 	// Rate for date for currency
 	Rates map[string]map[string]float32 `json:"rates"`
+}
+
+// Gets countries mathing given name
+func GetCountries(name string) (Countries, int) {
+	var countries Countries
+
+	// Set fullText to only return full matches, not partial ones
+	res, err := http.Get(RestCountriesRoot + "/name/norway?fullText=true")
+	if err != nil {
+		log.Fatalf("Get country failed with: %s", err.Error())
+	}
+
+	json.NewDecoder(res.Body).Decode(&countries)
+	res.Body.Close()
+
+	return countries, res.StatusCode
+}
+
+// Gets exchangerates history for given currencies in the given timeperiod, relative to given base.
+// Where base is a currency code.
+func GetExchangeRates(base string, currencies []Currency, startDate, endDate string) (Rates, int) {
+	var rates Rates
+
+	// Construct URL
+	url, _ := url.Parse(ExchangeRatesAPIRoot)
+	queries := url.Query()
+	queries.Set("base", "EUR")
+	queries.Set("start_at", startDate)
+	queries.Set("end_at", endDate)
+	for _, currency := range currencies {
+		queries.Add("symbols", currency.Code)
+	}
+	url.RawQuery = queries.Encode()
+	url.Path += "/history"
+
+	// Get the rates
+	res, err := http.Get(url.String())
+	if err != nil {
+		log.Fatal(err)
+	}
+	json.NewDecoder(res.Body).Decode(&rates)
+	res.Body.Close()
+
+	return rates, res.StatusCode
 }
