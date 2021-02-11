@@ -40,7 +40,7 @@ func setupRoutes() *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 
-	r.Get("/exchange/v1/exchangehistory/{country:[a-z]+}/{start:[0-9-]+}-{end:[0-9-]+}", exchange.HistoryHandler)
+	r.Get("/exchange/v1/exchangehistory/{country:[a-z]+}/{start_yyyy}-{start_mm}-{start_dd}-{end_yyyy}-{end_mm}-{end_dd}", exchange.HistoryHandler)
 	r.Get("/exchange/v1/exchangeborder/{country:[a-z]+}", exchange.BorderHandler)
 	r.Get("/exchange/v1/diag", diag.NewHandler(StartTime, Version))
 
