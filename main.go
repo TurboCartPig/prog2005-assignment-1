@@ -21,7 +21,7 @@ import (
 var StartTime time.Time = time.Now()
 
 // Version of the program
-var Version string = "0.1.0"
+var Version string = "v1"
 
 // Functions
 /////////////////////////////////////////////////////////////////////////////////////////////
