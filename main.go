@@ -23,10 +23,13 @@ var StartTime time.Time = time.Now()
 // Version of the program
 var Version string = "v1"
 
+// Root endpoint path
+var RootPath string = "/exchage/" + Version
+
 // Functions
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-// Get the port from enviroment variable $PORT, or use default if the variable is not set
+// Get the port from environment variable $PORT, or use default if the variable is not set
 func port() int {
 	if port := os.Getenv("PORT"); port != "" {
 		port, _ := strconv.Atoi(port)
@@ -53,15 +56,15 @@ func setupRoutes() *chi.Mux {
 
 	// Define endpoints
 	r.Get(
-		"/exchange/v1/exchangehistory/{country:[a-z]+}/{start_yyyy}-{start_mm}-{start_dd}-{end_yyyy}-{end_mm}-{end_dd}",
+		RootPath+"/exchangehistory/{country:[a-z]+}/{start_yyyy}-{start_mm}-{start_dd}-{end_yyyy}-{end_mm}-{end_dd}",
 		exchange.HistoryHandler,
 	)
 	r.Get(
-		"/exchange/v1/exchangeborder/{country:[a-z]+}",
+		RootPath+"/exchangeborder/{country:[a-z]+}",
 		exchange.BorderHandler,
 	)
 	r.Get(
-		"/exchange/v1/diag",
+		RootPath+"/diag",
 		diag.NewHandler(StartTime, Version),
 	)
 
