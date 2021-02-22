@@ -2,7 +2,6 @@ package exchange
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,7 +11,7 @@ import (
 )
 
 // Parse parameters from request into country, start date and end date.
-func parseParameters(r *http.Request) (string, string, string, error) {
+func parseParameters(r *http.Request) (string, string, string, *ServerError) {
 	country := chi.URLParam(r, "country")
 	startYear := chi.URLParam(r, "start_yyyy")
 	startMonth := chi.URLParam(r, "start_mm")
@@ -29,8 +28,7 @@ func parseParameters(r *http.Request) (string, string, string, error) {
 	startDate, startErr := time.Parse(time.RFC3339, startDateStr+"T00:00:00Z")
 	endDate, endErr := time.Parse(time.RFC3339, endDateStr+"T00:00:00Z")
 	if endDate.Before(startDate) || startErr != nil || endErr != nil {
-		log.Printf("Bad parameter format")
-		return "", "", "", errors.New("Bad Format")
+		return "", "", "", &ServerError{"Bad date format", http.StatusBadRequest}
 	}
 
 	return country, startDateStr, endDateStr, nil
@@ -40,14 +38,14 @@ func parseParameters(r *http.Request) (string, string, string, error) {
 func HistoryHandler(rw http.ResponseWriter, r *http.Request) {
 	country, startDate, endDate, err := parseParameters(r)
 	if err != nil {
-		http.Error(rw, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		http.Error(rw, err.Error(), err.StatusCode)
 		return
 	}
 
 	// Get country information from restcountries.eu
-	countries, status := GetCountries(country)
-	if status != http.StatusOK {
-		http.Error(rw, http.StatusText(status), status)
+	countries, err := GetCountries(country)
+	if err != nil {
+		http.Error(rw, err.Error(), err.StatusCode)
 		return
 	}
 
@@ -56,9 +54,9 @@ func HistoryHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get currency
-	rates, status := GetExchangeRates("EUR", countries[0].Currencies, startDate, endDate)
-	if status != http.StatusOK {
-		http.Error(rw, http.StatusText(status), status)
+	rates, err := GetExchangeRates("EUR", countries[0].Currencies, startDate, endDate)
+	if err != nil {
+		http.Error(rw, err.Error(), err.StatusCode)
 		return
 	}
 

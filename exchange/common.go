@@ -2,7 +2,7 @@ package exchange
 
 import (
 	"encoding/json"
-	"log"
+	fmt "fmt"
 	"net/http"
 	"net/url"
 )
@@ -75,31 +75,45 @@ type Rates struct {
 	Rates map[string]map[string]float32 `json:"rates"`
 }
 
+// Describes an internal server error and what http status code it should return.
+type ServerError struct {
+	error string
+	// StatusCode is the http status code that should be returned by the server when handling this error.
+	StatusCode int
+}
+
+func (e *ServerError) Error() string {
+	return e.error
+}
+
 // Gets countries matching given name
-func GetCountries(name string) (Countries, int) {
+func GetCountries(name string) (Countries, *ServerError) {
 	var countries Countries
 
 	// Set fullText to only return full matches, not partial ones
-	res, err := http.Get(RestCountriesRoot + "/name/norway?fullText=true")
+	res, err := http.Get(RestCountriesRoot + "/name/" + name + "?fullText=true")
 	if err != nil {
-		log.Fatalf("Get country failed with: %s", err.Error())
+		return countries, &ServerError{fmt.Sprintf("Get country failed with: %s", err.Error()), res.StatusCode}
 	}
 
-	json.NewDecoder(res.Body).Decode(&countries)
+	err = json.NewDecoder(res.Body).Decode(&countries)
+	if err != nil {
+		return countries, &ServerError{"Failed to decode json response from restcountries.eu", http.StatusInternalServerError}
+	}
 	res.Body.Close()
 
-	return countries, res.StatusCode
+	return countries, nil
 }
 
 // Gets exchange-rates history for given currencies in the given time period, relative to given base.
 // Where base is a currency code.
-func GetExchangeRates(base string, currencies []Currency, startDate, endDate string) (Rates, int) {
+func GetExchangeRates(base string, currencies []Currency, startDate, endDate string) (Rates, *ServerError) {
 	var rates Rates
 
 	// Construct URL
 	url, _ := url.Parse(ExchangeRatesAPIRoot)
 	queries := url.Query()
-	queries.Set("base", "EUR")
+	queries.Set("base", base)
 	queries.Set("start_at", startDate)
 	queries.Set("end_at", endDate)
 	for _, currency := range currencies {
@@ -111,10 +125,14 @@ func GetExchangeRates(base string, currencies []Currency, startDate, endDate str
 	// Get the rates
 	res, err := http.Get(url.String())
 	if err != nil {
-		log.Fatal(err)
+		return rates, &ServerError{err.Error(), res.StatusCode}
 	}
-	json.NewDecoder(res.Body).Decode(&rates)
+
+	err = json.NewDecoder(res.Body).Decode(&rates)
+	if err != nil {
+		return rates, &ServerError{err.Error(), http.StatusInternalServerError}
+	}
 	res.Body.Close()
 
-	return rates, res.StatusCode
+	return rates, nil
 }
