@@ -36,6 +36,7 @@ func parseParameters(r *http.Request) (string, string, string, error) {
 	return country, startDateStr, endDateStr, nil
 }
 
+// HistoryHandler responds to request for currency history for a given country.
 func HistoryHandler(rw http.ResponseWriter, r *http.Request) {
 	country, startDate, endDate, err := parseParameters(r)
 	if err != nil {

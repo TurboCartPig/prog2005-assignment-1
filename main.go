@@ -24,7 +24,7 @@ var StartTime time.Time = time.Now()
 var Version string = "v1"
 
 // Root endpoint path
-var RootPath string = "/exchage/" + Version
+var RootPath string = "/exchange/" + Version
 
 // Functions
 /////////////////////////////////////////////////////////////////////////////////////////////

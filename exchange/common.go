@@ -26,7 +26,7 @@ type Country struct {
 	AltSpellings   []string          `json:"altSpellings"`
 	Region         string            `json:"region"`
 	Subregion      string            `json:"subregion"`
-	Popultaion     int               `json:"population"`
+	Population     int               `json:"population"`
 	LatLng         []float32         `json:"latlng"`
 	Demonym        string            `json:"demonym"`
 	Area           float32           `json:"area"`
@@ -39,7 +39,7 @@ type Country struct {
 	Languages      []Language        `json:"languages"`
 	Translations   map[string]string `json:"translations"`
 	Flag           string            `json:"flag"`
-	RegionalBlocks []ReginalBlock    `json:"regionalBlocks"`
+	RegionalBlocks []RegionalBlock   `json:"regionalBlocks"`
 	Cioc           string            `json:"cioc"`
 }
 
@@ -56,7 +56,7 @@ type Language struct {
 	NativeName string `json:"nativeName"`
 }
 
-type ReginalBlock struct {
+type RegionalBlock struct {
 	Acronym       string   `json:"acronym"`
 	Name          string   `json:"name"`
 	OtherAcronyms []string `json:"otherAcronyms"`
@@ -75,7 +75,7 @@ type Rates struct {
 	Rates map[string]map[string]float32 `json:"rates"`
 }
 
-// Gets countries mathing given name
+// Gets countries matching given name
 func GetCountries(name string) (Countries, int) {
 	var countries Countries
 
@@ -91,7 +91,7 @@ func GetCountries(name string) (Countries, int) {
 	return countries, res.StatusCode
 }
 
-// Gets exchangerates history for given currencies in the given timeperiod, relative to given base.
+// Gets exchange-rates history for given currencies in the given time period, relative to given base.
 // Where base is a currency code.
 func GetExchangeRates(base string, currencies []Currency, startDate, endDate string) (Rates, int) {
 	var rates Rates
