@@ -2,9 +2,8 @@ package exchange
 
 import (
 	"encoding/json"
-	fmt "fmt"
+	"fmt"
 	"net/http"
-	"net/url"
 )
 
 const (
@@ -63,18 +62,6 @@ type RegionalBlock struct {
 	OtherNames    []string `json:"otherNames"`
 }
 
-// Describes the rates for exchange between a base currency and a list of other currencies in some timeperiod.
-type Rates struct {
-	// Base currency
-	Base string `json:"base"`
-	// Starting date for lookup
-	StartAt string `json:"start_at"`
-	// End date for lookup
-	EndAt string `json:"end_at"`
-	// Rate for date for currency
-	Rates map[string]map[string]float32 `json:"rates"`
-}
-
 // Describes an internal server error and what http status code it should return.
 type ServerError struct {
 	error string
@@ -86,53 +73,56 @@ func (e *ServerError) Error() string {
 	return e.error
 }
 
-// Gets countries matching given name
-func GetCountries(name string) (Countries, *ServerError) {
-	var countries Countries
+// GetCountryCode returns the country code given a country name.
+func GetCountryCode(name string) (string, *ServerError) {
+	country := make([]map[string]string, 1)
 
-	// Set fullText to only return full matches, not partial ones
-	res, err := http.Get(RestCountriesRoot + "/name/" + name + "?fullText=true")
+	res, err := http.Get(RestCountriesRoot + "/name/" + name + "?fullText=true&fields=alpha3Code")
 	if err != nil {
-		return countries, &ServerError{fmt.Sprintf("Get country failed with: %s", err.Error()), res.StatusCode}
+		return "", &ServerError{fmt.Sprintf("Get country failed with: %s", err.Error()), res.StatusCode}
 	}
 
-	err = json.NewDecoder(res.Body).Decode(&countries)
+	err = json.NewDecoder(res.Body).Decode(&country)
 	if err != nil {
-		return countries, &ServerError{"Failed to decode json response from restcountries.eu", http.StatusInternalServerError}
+		return "", &ServerError{"Failed to decode json response from restcountries.eu", http.StatusInternalServerError}
 	}
 	res.Body.Close()
 
-	return countries, nil
+	return country[0]["alpha3Code"], nil
 }
 
-// Gets exchange-rates history for given currencies in the given time period, relative to given base.
-// Where base is a currency code.
-func GetExchangeRates(base string, currencies []Currency, startDate, endDate string) (Rates, *ServerError) {
-	var rates Rates
-
-	// Construct URL
-	url, _ := url.Parse(ExchangeRatesAPIRoot)
-	queries := url.Query()
-	queries.Set("base", base)
-	queries.Set("start_at", startDate)
-	queries.Set("end_at", endDate)
-	for _, currency := range currencies {
-		queries.Add("symbols", currency.Code)
-	}
-	url.RawQuery = queries.Encode()
-	url.Path += "/history"
-
-	// Get the rates
-	res, err := http.Get(url.String())
+// GetCountryByName return country information given a country name.
+func GetCountryByName(name string) (Country, *ServerError) {
+	var country Country
+	// Get country code
+	countryCode, err := GetCountryCode(name)
 	if err != nil {
-		return rates, &ServerError{err.Error(), res.StatusCode}
+		return country, err
 	}
 
-	err = json.NewDecoder(res.Body).Decode(&rates)
+	// Get country information from restcountries.eu
+	country, err = GetCountryByCode(countryCode)
 	if err != nil {
-		return rates, &ServerError{err.Error(), http.StatusInternalServerError}
+		return country, err
+	}
+
+	return country, nil
+}
+
+// GetCountryByCode returns country information given country code.
+func GetCountryByCode(code string) (Country, *ServerError) {
+	var country Country
+
+	res, err := http.Get(RestCountriesRoot + "/alpha/" + code)
+	if err != nil {
+		return country, &ServerError{fmt.Sprintf("Get country failed with: %s", err.Error()), res.StatusCode}
+	}
+
+	err = json.NewDecoder(res.Body).Decode(&country)
+	if err != nil {
+		return country, &ServerError{"Failed to decode json response from restcountries.eu", http.StatusInternalServerError}
 	}
 	res.Body.Close()
 
-	return rates, nil
+	return country, nil
 }

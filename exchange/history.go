@@ -3,12 +3,24 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/go-chi/chi"
 )
+
+// Describes the rates for exchange between a base currency and a list of other currencies in some timeperiod.
+type ExchangeRateHistory struct {
+	// Base currency
+	Base string `json:"base"`
+	// Starting date for lookup
+	StartAt string `json:"start_at"`
+	// End date for lookup
+	EndAt string `json:"end_at"`
+	// Rate for date for currency
+	Rates map[string]map[string]float32 `json:"rates"`
+}
 
 // Parse parameters from request into country, start date and end date.
 func parseParameters(r *http.Request) (string, string, string, *ServerError) {
@@ -34,27 +46,53 @@ func parseParameters(r *http.Request) (string, string, string, *ServerError) {
 	return country, startDateStr, endDateStr, nil
 }
 
+// Gets exchange-rates history for given currencies in the given time period, relative to given base.
+// Where base is a currency code.
+func GetExchangeRateHistory(base string, currency Currency, startDate, endDate string) (ExchangeRateHistory, *ServerError) {
+	var rates ExchangeRateHistory
+
+	// Construct URL
+	url, _ := url.Parse(ExchangeRatesAPIRoot)
+	url.Path += "/history"
+	queries := url.Query()
+	queries.Set("base", base)
+	queries.Set("start_at", startDate)
+	queries.Set("end_at", endDate)
+	queries.Set("symbols", currency.Code)
+	url.RawQuery = queries.Encode()
+
+	// Get the rates
+	res, err := http.Get(url.String())
+	if err != nil {
+		return rates, &ServerError{err.Error(), res.StatusCode}
+	}
+
+	err = json.NewDecoder(res.Body).Decode(&rates)
+	if err != nil {
+		return rates, &ServerError{err.Error(), http.StatusInternalServerError}
+	}
+	res.Body.Close()
+
+	return rates, nil
+}
+
 // HistoryHandler responds to request for currency history for a given country.
 func HistoryHandler(rw http.ResponseWriter, r *http.Request) {
-	country, startDate, endDate, err := parseParameters(r)
+	countryName, startDate, endDate, err := parseParameters(r)
 	if err != nil {
 		http.Error(rw, err.Error(), err.StatusCode)
 		return
 	}
 
-	// Get country information from restcountries.eu
-	countries, err := GetCountries(country)
+	// Get country information
+	country, err := GetCountryByName(countryName)
 	if err != nil {
 		http.Error(rw, err.Error(), err.StatusCode)
 		return
-	}
-
-	if len(countries) > 1 {
-		log.Println("Given parameter matched more the one country. Make sure the country name is spelled correctly.")
 	}
 
 	// Get currency
-	rates, err := GetExchangeRates("EUR", countries[0].Currencies, startDate, endDate)
+	rates, err := GetExchangeRateHistory("EUR", country.Currencies[0], startDate, endDate)
 	if err != nil {
 		http.Error(rw, err.Error(), err.StatusCode)
 		return
