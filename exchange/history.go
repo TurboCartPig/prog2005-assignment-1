@@ -10,7 +10,7 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// Describes the rates for exchange between a base currency and a list of other currencies in some timeperiod.
+// ExchangeRates describes the rates for exchange between a base currency and some other currency in a time period.
 type ExchangeRateHistory struct {
 	// Base currency
 	Base string `json:"base"`
@@ -22,7 +22,7 @@ type ExchangeRateHistory struct {
 	Rates map[string]map[string]float32 `json:"rates"`
 }
 
-// Parse parameters from request into country, start date and end date.
+// parseParameters from request into country name, start date and end date.
 func parseParameters(r *http.Request) (string, string, string, *ServerError) {
 	country := chi.URLParam(r, "country")
 	startYear := chi.URLParam(r, "start_yyyy")
@@ -46,8 +46,7 @@ func parseParameters(r *http.Request) (string, string, string, *ServerError) {
 	return country, startDateStr, endDateStr, nil
 }
 
-// Gets exchange-rates history for given currencies in the given time period, relative to given base.
-// Where base is a currency code.
+// GetExchangeRateHistory for a given currency in the given time period, relative to given base currency.
 func GetExchangeRateHistory(base string, currency Currency, startDate, endDate string) (ExchangeRateHistory, *ServerError) {
 	var rates ExchangeRateHistory
 

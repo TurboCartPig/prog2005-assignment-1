@@ -13,8 +13,7 @@ const (
 	ExchangeRatesAPIRoot = "https://api.exchangeratesapi.io"
 )
 
-type Countries = []Country
-
+// Country represents a country as given by `restcountries.eu`.
 type Country struct {
 	Name           string            `json:"name"`
 	TopLevelDomain []string          `json:"topLevelDomain"`
@@ -42,12 +41,14 @@ type Country struct {
 	Cioc           string            `json:"cioc"`
 }
 
+// Currency of a Country.
 type Currency struct {
 	Code   string `json:"code"`
 	Name   string `json:"name"`
 	Symbol string `json:"symbol"`
 }
 
+// Language of a Country.
 type Language struct {
 	ISO639_1   string `json:"iso639_1"`
 	ISO639_2   string `json:"iso639_2"`
@@ -55,6 +56,7 @@ type Language struct {
 	NativeName string `json:"nativeName"`
 }
 
+// RegionalBlocks of a Country.
 type RegionalBlock struct {
 	Acronym       string   `json:"acronym"`
 	Name          string   `json:"name"`
@@ -62,7 +64,7 @@ type RegionalBlock struct {
 	OtherNames    []string `json:"otherNames"`
 }
 
-// Describes an internal server error and what http status code it should return.
+// ServerError describes an internal server error and what http status code it should return.
 type ServerError struct {
 	error string
 	// StatusCode is the http status code that should be returned by the server when handling this error.
