@@ -39,7 +39,7 @@ func parseParameters(r *http.Request) (string, string, string, *ServerError) {
 	// Make sure the parameters make sense
 	startDate, startErr := time.Parse(time.RFC3339, startDateStr+"T00:00:00Z")
 	endDate, endErr := time.Parse(time.RFC3339, endDateStr+"T00:00:00Z")
-	if endDate.Before(startDate) || startErr != nil || endErr != nil {
+	if startErr != nil || endErr != nil || endDate.Before(startDate) {
 		return "", "", "", &ServerError{"Bad date format", http.StatusBadRequest}
 	}
 
