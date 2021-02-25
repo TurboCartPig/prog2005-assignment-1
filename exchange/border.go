@@ -2,11 +2,12 @@ package exchange
 
 import (
 	"encoding/json"
-	"github.com/go-chi/chi"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"github.com/go-chi/chi"
 )
 
 // rate is a exchange rate used in ExchangeRates.
@@ -62,23 +63,24 @@ func GetExchangeRates(base string, countries []Country) (ExchangeRates, *ServerE
 // BorderHandler responds to requests for currency information related to a country's bordering countries.
 func BorderHandler(rw http.ResponseWriter, r *http.Request) {
 	countryName := chi.URLParam(r, "country")
-	limitParam := r.URL.Query().Get("limit")
-	limit, convErr := strconv.Atoi(limitParam)
-	if convErr != nil {
-		log.Printf("Invalid limit parameter received: %s", convErr.Error())
-		http.Error(rw, convErr.Error(), http.StatusBadRequest)
-		return
-	}
-
 	country, err := GetCountryByName(countryName)
 	if err != nil {
 		http.Error(rw, err.Error(), err.StatusCode)
 		return
 	}
 
-	// Only fetch currencies for a max of limit countries
-	if limit > len(country.Borders) {
-		limit = len(country.Borders)
+	// Only return min(limit parameter, number of border country)
+	limit := len(country.Borders)
+	if limitParamS := r.URL.Query().Get("limit"); limitParamS != "" {
+		limitParam, convErr := strconv.Atoi(limitParamS)
+		if convErr != nil {
+			log.Printf("Invalid limit parameter received: %s", convErr.Error())
+			http.Error(rw, convErr.Error(), http.StatusBadRequest)
+			return
+		}
+		if limit > limitParam {
+			limit = limitParam
+		}
 	}
 
 	// Get country information from country code
