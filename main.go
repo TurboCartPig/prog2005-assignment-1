@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"assignment-1/diag"
 	"assignment-1/exchange"
 
 	"github.com/go-chi/chi"
@@ -65,7 +64,7 @@ func setupRoutes() *chi.Mux {
 	)
 	r.Get(
 		RootPath+"/diag",
-		diag.NewHandler(StartTime, Version),
+		exchange.NewHandler(StartTime, Version),
 	)
 
 	return r

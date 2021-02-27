@@ -1,4 +1,4 @@
-package diag
+package exchange
 
 import (
 	"encoding/json"
@@ -7,40 +7,37 @@ import (
 	"time"
 )
 
-// Response from the diagnostic interface
-type Response struct {
+// diag is the response from the diagnostic interface.
+type diag struct {
 	ExchangeRatesAPI int    `json:"excheratesapi"`
 	RestCountries    int    `json:"restcountries"`
 	Version          string `json:"version"`
 	Uptime           int    `json:"uptime"`
 }
 
-// Get the status code of a http server of some kind
+// getStatusOf returns the status code of a head request to the root path of a remote.
 func getStatusOf(addr string) int {
 	res, err := http.Head(addr)
 	if err != nil {
 		log.Printf("Head request failed with: %s", err.Error())
-		// If the request failed, assume it's out fault and not the remote
-		// FIXME: What happends if the remote is down? Or has misconfigured DNS settings?
-		return http.StatusBadRequest
+		return http.StatusBadRequest // Assume I did something wrong, all other errors should be "successful"
 	}
 	res.Body.Close()
 	return res.StatusCode
 }
 
-// Returns a handler function for the diagnostic endpoint
+// NewHandler returns a handler function for the diagnostic endpoint
 func NewHandler(startTime time.Time, version string) func(http.ResponseWriter, *http.Request) {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		uptime := int(time.Since(startTime).Seconds())
 
-		response := Response{
-			getStatusOf("https://api.exchangeratesapi.io"),
-			getStatusOf("https://restcountries.eu/rest/v2"),
+		response := diag{
+			getStatusOf(ExchangeRatesAPIRoot),
+			getStatusOf(RestCountriesRoot),
 			version,
 			uptime,
 		}
 
-		rw.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(rw).Encode(response)
 	}
 }
