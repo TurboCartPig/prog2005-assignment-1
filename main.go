@@ -45,6 +45,13 @@ func returnJSON(next http.Handler) http.Handler {
 	})
 }
 
+// returnMessage and set error code.
+func returnMessage(msg string, code int) http.HandlerFunc {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		http.Error(rw, msg, code)
+	})
+}
+
 // Setup all the top level routes the server serves on
 func setupRoutes() *chi.Mux {
 	r := chi.NewRouter()
@@ -59,8 +66,16 @@ func setupRoutes() *chi.Mux {
 		exchange.HistoryHandler,
 	)
 	r.Get(
+		RootPath+"/exchangehistory/*",
+		returnMessage("Expected all lowercase country name, start date and end date in format yyyy-mm-dd.", http.StatusBadRequest),
+	)
+	r.Get(
 		RootPath+"/exchangeborder/{country:[a-z]+}",
 		exchange.BorderHandler,
+	)
+	r.Get(
+		RootPath+"/exchangeborder/*",
+		returnMessage("Expected all lowercase country name.", http.StatusBadRequest),
 	)
 	r.Get(
 		RootPath+"/diag",
