@@ -26,8 +26,8 @@ func getStatusOf(addr string) int {
 	return res.StatusCode
 }
 
-// NewHandler returns a handler function for the diagnostic endpoint
-func NewHandler(startTime time.Time, version string) http.HandlerFunc {
+// NewDiagHandler returns a handler function for the diagnostic endpoint
+func NewDiagHandler(startTime time.Time, version string) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		uptime := int(time.Since(startTime).Seconds())
 

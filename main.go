@@ -79,7 +79,7 @@ func setupRoutes() *chi.Mux {
 	)
 	r.Get(
 		RootPath+"/diag",
-		exchange.NewHandler(StartTime, Version),
+		exchange.NewDiagHandler(StartTime, Version),
 	)
 
 	return r
